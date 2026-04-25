@@ -18,7 +18,8 @@ export default {
 		const userIDMD5 = await MD5MD5(管理员密码 + 加密秘钥);
 		const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
 		const envUUID = env.UUID || env.uuid;
-		const userID = (envUUID && uuidRegex.test(envUUID)) ? envUUID.toLowerCase() : [userIDMD5.slice(0, 8), userIDMD5.slice(8, 12), '4' + userIDMD5.slice(13, 16), '8' + userIDMD5.slice(17, 20), userIDMD5.slice(20)].join('-');
+		const 默认UUID = (envUUID && uuidRegex.test(envUUID)) ? envUUID.toLowerCase() : [userIDMD5.slice(0, 8), userIDMD5.slice(8, 12), '4' + userIDMD5.slice(13, 16), '8' + userIDMD5.slice(17, 20), userIDMD5.slice(20)].join('-');
+		const userID = await 获取有效UUID(env, 默认UUID);
 		const hosts = env.HOST ? (await 整理成数组(env.HOST)).map(h => h.toLowerCase().replace(/^https?:\/\//, '').split('/')[0].split(':')[0]) : [url.hostname];
 		const host = hosts[0];
 		const 访问路径 = url.pathname.slice(1).toLowerCase();
@@ -185,6 +186,8 @@ export default {
 								const newConfig = await request.json();
 								// 验证配置完整性
 								if (!newConfig.UUID || !newConfig.HOST) return new Response(JSON.stringify({ error: '配置不完整' }), { status: 400, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
+								if (!uuidRegex.test(newConfig.UUID)) return new Response(JSON.stringify({ error: 'UUID 必须是有效的 UUIDv4 格式' }), { status: 400, headers: { 'Content-Type': 'application/json;charset=utf-8' } });
+								newConfig.UUID = newConfig.UUID.toLowerCase();
 
 								// 保存到 KV
 								await env.KV.put('config.json', JSON.stringify(newConfig, null, 2));
@@ -3377,6 +3380,24 @@ function 掩码敏感信息(文本, 前缀长度 = 3, 后缀长度 = 2) {
 
 	return `${前缀}${'*'.repeat(星号数量)}${后缀}`;
 }
+
+async function 获取有效UUID(env, 默认UUID) {
+	const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+	const envUUID = env.UUID || env.uuid;
+	if (envUUID && uuidRegex.test(envUUID)) return envUUID.toLowerCase();
+	if (!env.KV || typeof env.KV.get !== 'function') return 默认UUID;
+	try {
+		const configText = await env.KV.get('config.json');
+		if (!configText) return 默认UUID;
+		const config = JSON.parse(configText);
+		if (config?.UUID && uuidRegex.test(config.UUID)) return config.UUID.toLowerCase();
+	} catch (error) {
+		console.error(`读取有效UUID出错: ${error.message}`);
+	}
+	return 默认UUID;
+}
+
+
 
 async function MD5MD5(文本) {
 	const 编码器 = new TextEncoder();
