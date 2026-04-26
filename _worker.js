@@ -3647,7 +3647,7 @@ async function 读取config_JSON(env, hostname, userID, UA = "Mozilla/5.0", 重�
 			TOKEN: await MD5MD5(hostname + 生效UUID),
 		},
 		订阅转换配置: {
-			SUBAPI: "https://justdoit.rookiecoder.com",
+			SUBAPI: "https://justdoit.rookiecoder.cn",
 			SUBCONFIG: "https://raw.githubusercontent.com/cmliu/ACL4SSR/refs/heads/main/Clash/config/ACL4SSR_Online_Mini_MultiMode_CF.ini",
 			SUBEMOJI: false,
 		},
